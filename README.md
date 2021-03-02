@@ -34,6 +34,8 @@ NB: There is a [snakemake](https://www.github.com/bartongroup/two_pass_alignment
 
 The `2passtools score` command requires as input a long read sequencing bam file aligned using minimap2 and a reference fasta file. It then extracts junction metrics and sequence information and uses it to score splice junctions found in the alignments. The output of `score` is a BED file with multiple columns corresponding to different metrics and model scores (see output below). This format cannot be passed to minimap2 directly as (A) it has not yet been filtered and (B) the extra column format is not supported by minimap2 which requires 6-column bed. Filtering and reformatting can be done using `2passtools filter`.
 
+If you already have a reference annotation but want to discover novel splice junctions, consider using the **annotation-aided mode** of `2passtools score`. It takes an additional input: a bed file containing hihg-confidence splice junctions from an existing reference annotation. `2passtools` will use these as positive examples to train *de novo* models to detect novel splice junctions. It works best if the existing annotation is relatively complete, but there are significant numbers of novel splice junctions: if the annotation is too incomplete it is better to run 2passtools using the pre-trained model, and if there are very few novel splice junctions, it is better just to do reference-guided alignment (without `2passtools`). There are experiments which might help you guide your decision in the [Genome Biology paper](https://doi.org/10.1186/s13059-021-02296-0).
+
 #### Options:
  
 ```
@@ -52,33 +54,52 @@ Options:
   -o, --output-bed-fn TEXT        Output file path  [required]
   -f, --ref-fasta-fn TEXT         Path to the fasta file that reads were
                                   mapped to  [required]
+
+  -a, --annot-bed-fn TEXT         Optional BED file containing annotated
+                                  junctions
+
   -j, --jad-size-threshold INTEGER
                                   JAD to threshold at in the decision tree
   -d, --primary-splice-local-dist INTEGER
                                   Distance to search for alternative
                                   donor/acceptors when calculating primary d/a
+
   -m, --canonical-motifs TEXT     Intron motifs considered canonical in
                                   organism. Should be four char DNA motifs
                                   separated by vertical bar only
+
   -w, --lr-window-size INTEGER    Sequence size to extract to train logistic
                                   regression models
+
   -k, --lr-kfold INTEGER          Number of cross validation k-folds for
                                   logistic regression models
+
   -lt, --lr-low-confidence-threshold FLOAT
                                   Logistic regression low confidence threshold
                                   for decision tree 2
+
   -ht, --lr-high-confidence-threshold FLOAT
                                   Logistic regression high confidence
                                   threshold for decision tree 2
+
+  -c, --classifier-type [decision_tree|random_forest]
+                                  When annotated juncs are available, train
+                                  this classifier type
+
+  --keep-all-annot / --filter-annot
+                                  When annotated juncs are available, always
+                                  keep all annotated juncs
+
   --stranded / --unstranded       Whether input data is stranded or
                                   unstranded. direct RNA is stranded, cDNA
                                   often isn't
+
   -p, --processes INTEGER
   -s, --random-seed INTEGER
   -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
                                   DEBUG
-  --help                          Show this message and exit.
 
+  --help                          Show this message and exit.
 ```
 
 #### Output:
@@ -190,3 +211,10 @@ Options:
                                   DEBUG
   --help                          Show this message and exit.
   ```
+
+
+### Citing `2passtools`:
+
+The `2passtools` manuscript is published in Genome Biology (Open access):
+
+> Parker, M.T., Knop, K., Barton, G.J. et al. 2passtools: two-pass alignment using machine-learning-filtered splice junctions increases the accuracy of intron detection in long-read RNA sequencing. Genome Biol 22, 72 (2021). https://doi.org/10.1186/s13059-021-02296-0
