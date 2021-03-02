@@ -187,28 +187,47 @@ Options:
   -o, --output-bed-fn TEXT        Output file path  [required]
   -f, --ref-fasta-fn TEXT         Path to the fasta file that reads were
                                   mapped to  [required]
+
+  -a, --annot-bed-fn TEXT         Optional BED file containing annotated
+                                  junctions
+
   -j, --jad-size-threshold INTEGER
                                   JAD to threshold at in the decision tree
   -d, --primary-splice-local-dist INTEGER
                                   Distance to search for alternative
                                   donor/acceptors when calculating primary d/a
+
   -m, --canonical-motifs TEXT     Intron motifs considered canonical in
                                   organism. Should be four char DNA motifs
                                   separated by vertical bar only
+
   -w, --lr-window-size INTEGER    Sequence size to extract to train logistic
                                   regression models
+
   -k, --lr-kfold INTEGER          Number of cross validation k-folds for
                                   logistic regression models
+
   -lt, --lr-low-confidence-threshold FLOAT
                                   Logistic regression low confidence threshold
                                   for decision tree 2
+
   -ht, --lr-high-confidence-threshold FLOAT
                                   Logistic regression high confidence
                                   threshold for decision tree 2
+
+  -c, --classifier-type [decision_tree|random_forest]
+                                  When annotated juncs are available, train
+                                  this classifier type
+
+  --keep-all-annot / --filter-annot
+                                  When annotated juncs are available, always
+                                  keep all annotated juncs
+
   -p, --processes INTEGER
   -s, --random-seed INTEGER
   -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
                                   DEBUG
+
   --help                          Show this message and exit.
   ```
 
