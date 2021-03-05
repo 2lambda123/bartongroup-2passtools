@@ -12,7 +12,7 @@ A package for filtering splice junctions extracted from noisy long read alignmen
 
 git clone https://www.github.com/bartongroup/2passtools
 cd 2passtools
-conda env create -f 2passtools.yaml
+conda env create -f 2passtools.yml
 
 source activate 2passtools
 ```
