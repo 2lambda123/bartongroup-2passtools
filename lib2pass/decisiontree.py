@@ -76,7 +76,7 @@ def dt1_pred(intron_motif, jad_labels, is_primary_donor, is_primary_acceptor,
     is_primary_acceptor = np.asarray(is_primary_acceptor, dtype=bool)
 
     is_primary = is_primary_donor & is_primary_acceptor
-    return (jad_label & is_canon) | (is_primary & is_canon)
+    return (jad_labels & is_canon) | (is_primary & is_canon)
 
 
 def dt1_de_novo_pred(intron_motif, intron_lengths,
