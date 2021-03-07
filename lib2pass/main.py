@@ -255,7 +255,7 @@ def merge(bed_fns, output_bed_fn, ref_fasta_fn, annot_bed_fn,
     ))
     log.info(f'Writing results to {output_bed_fn}')
     with open(output_bed_fn, 'w') as bed:
-        for i, motif, c, jad, pd, pa, d1, lrd, lra, d2 in res:
+        for i, motif,_, c, jad, pd, pa, d1, lrd, lra, d2 in res:
             chrom, start, end, strand = i
             bed.write(
                 f'{chrom:s}\t{start:d}\t{end:d}\t{motif:s}\t{c:d}\t{strand:s}\t'
