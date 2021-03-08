@@ -15,7 +15,6 @@ def read_junc_bed(bed_fn):
             ln = end - start
             count = int(count)
             jad = int(jad)
-#             term = int(term)
             i = (chrom, start, end, strand)
             motifs[i] = motif
             lengths[i] = ln
