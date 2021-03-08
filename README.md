@@ -1,6 +1,6 @@
 # 2passtools
 
-[![doi](https://zenodo.org/badge/242980365.svg)](https://doi.org/10.5281/zenodo.3778819)
+[![DOI](https://zenodo.org/badge/242980365.svg)](https://zenodo.org/badge/latestdoi/242980365)
 
 A package for filtering splice junctions extracted from noisy long read alignments generated using minimap2. These can then be used to perform second pass alignment with minimap2, feeding in the junctions using the `--junc-bed` flag.
 
@@ -34,7 +34,7 @@ NB: There is a [snakemake](https://www.github.com/bartongroup/two_pass_alignment
 
 The `2passtools score` command requires as input a long read sequencing bam file aligned using minimap2 and a reference fasta file. It then extracts junction metrics and sequence information and uses it to score splice junctions found in the alignments. The output of `score` is a BED file with multiple columns corresponding to different metrics and model scores (see output below). This format cannot be passed to minimap2 directly as (A) it has not yet been filtered and (B) the extra column format is not supported by minimap2 which requires 6-column bed. Filtering and reformatting can be done using `2passtools filter`.
 
-If you already have a reference annotation but want to discover novel splice junctions, consider using the **annotation-aided mode** of `2passtools score`. It takes an additional input: a bed file containing hihg-confidence splice junctions from an existing reference annotation. `2passtools` will use these as positive examples to train *de novo* models to detect novel splice junctions. It works best if the existing annotation is relatively complete, but there are significant numbers of novel splice junctions: if the annotation is too incomplete it is better to run 2passtools using the pre-trained model, and if there are very few novel splice junctions, it is better just to do reference-guided alignment (without `2passtools`). There are experiments which might help you guide your decision in the [Genome Biology paper](https://doi.org/10.1186/s13059-021-02296-0).
+If you already have a reference annotation but want to discover novel splice junctions, consider using the **annotation-aided mode** of `2passtools score`. It takes an additional input: a bed file containing high-confidence splice junctions from an existing reference annotation. `2passtools` will use these as positive examples to train *de novo* models to detect novel splice junctions. It works best if the existing annotation is relatively complete, but there are significant numbers of novel splice junctions: if the annotation is too incomplete it is better to run 2passtools using the pre-trained model, and if there are very few novel splice junctions, it is better just to do reference-guided alignment (without `2passtools`). There are experiments which might help you guide your decision in the [Genome Biology paper](https://doi.org/10.1186/s13059-021-02296-0).
 
 #### Options:
  
