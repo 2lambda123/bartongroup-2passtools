@@ -3,6 +3,7 @@ lib2pass.main: contains the command line interface for 2passtools
 '''
 import os
 import logging
+import tempfile
 
 import click
 import click_log
@@ -282,10 +283,128 @@ def filter(bed_fn, output_bed_fn, exprs):
 
 
 @main.command()
+@click.argument('fastq-fn', required=True, nargs=1)
+@click.option('-b', '--output-bam-prefix', required=True, help='Output bam prefix')
+@_common_options(SCORE_MERGE_COMMON_OPTIONS)
+@click.option('--stranded/--unstranded', default=True,
+              help=('Whether input data is stranded or unstranded. '
+                    'direct RNA is stranded, cDNA often isn\'t'))
+@click.option('--exprs', required=False, default="decision_tree_2_pred")
+@click.option('-mk', '--mm2-k', default=14, type=int, help='Minimap2 minimizer kmer size')
+@click.option('-mw', '--mm2-w', default=5, type=int, help='Minimap2 minimizer window size')
+@click.option('--mm2-splice-flank/--mm2-no-splice-flank', default=True,
+              help='Assume the next base to a GU donor site tends to be A/G')
+@click.option('-mc', '--mm2-noncanon-splicing-pen', default=9, type=int,
+              help='Penalty for non-canonical (non GU/AG) splicing')
+@click.option('--mm2-junc-bonus', default=12, type=int,
+              help='Score bonus for a splice donor or acceptor found in guide junctions')
+@click.option('-mG', '--mm2-max-intron-size', default=100_000, type=int, help='Maximum intron size')
+@click.option('--mm2-end-seed-pen', default=12, type=int, help='helps avoid tiny terminal exons')
+@click.option('-p', '--processes', default=1)
+@click.option('-s', '--random-seed', default=None, type=int)
 @click_log.simple_verbosity_option(log)
-def mm2pass():
-    raise NotImplementedError('TODO: implement convience tool to wrap '
-                              'minimap2 and run two pass alignment')
+def mm2pass(fastq_fn, output_bam_prefix,
+            output_bed_fn, ref_fasta_fn, annot_bed_fn,
+            jad_size_threshold,
+            primary_splice_local_dist, canonical_motifs,
+            lr_window_size, lr_kfold,
+            lr_low_confidence_threshold, lr_high_confidence_threshold,
+            classifier_type, keep_all_annot, stranded, exprs,
+            mm2_k, mm2_w, mm2_splice_flank, mm2_noncanon_splicing_pen,
+            mm2_junc_bonus, mm2_max_intron_size, mm2_end_seed_pen,
+            processes, random_seed):
+    '''
+    2passtools mm2pass: Wrapper which performs two pass alignment using
+    minimap2 and 2passtools score/filter.
+    '''
+    if random_seed is not None:
+        np.random.seed(random_seed)
+
+    from .minimap2 import map_with_minimap2
+
+    ## FIRST PASS
+    first_pass_fn = f'{output_bam_prefix}.1pass.bam'
+    log.info(f'First pass alignment will be output to {first_pass_fn}')
+    if annot_bed_fn is not None:
+        log.info(f'Using guide junctions from {annot_bed_fn}')
+    map_with_minimap2(
+        fastq_fn,
+        ref_fasta_fn,
+        output_fn=first_pass_fn,
+        threads=processes,
+        k=mm2_k, w=mm2_w,
+        splice_flank=mm2_splice_flank,
+        noncanon_pen=mm2_noncanon_splicing_pen,
+        canon_splice_strand='f' if stranded else 'b',
+        junc_bed=annot_bed_fn,
+        junc_bonus=mm2_junc_bonus,
+        max_intron_size=mm2_max_intron_size,
+        end_seed_pen=mm2_end_seed_pen,
+    )
+
+    ## SCORING
+    log.info(f'Parsing BAM file: {first_pass_fn}')
+    (introns, motifs, lengths,
+     counts, jad_labels,
+     is_primary_donor, is_primary_acceptor) = parse_introns(
+        first_pass_fn,
+        primary_splice_local_dist,
+        stranded,
+        1_000_000, processes
+    )
+    res = zip(*_all_predictions(
+        introns, motifs, lengths, counts, jad_labels,
+        is_primary_donor, is_primary_acceptor,
+        ref_fasta_fn, annot_bed_fn,
+        canonical_motifs, jad_size_threshold,
+        lr_window_size, lr_kfold,
+        lr_low_confidence_threshold,
+        lr_high_confidence_threshold,
+        classifier_type, keep_all_annot, processes
+    ))
+
+    log.info(f'Writing results to {output_bed_fn}')
+    with open(output_bed_fn, 'w') as bed:
+        for i, motif, _, c, jad, pd, pa, d1, lrd, lra, d2 in res:
+            chrom, start, end, strand = i
+            bed.write(
+                f'{chrom:s}\t{start:d}\t{end:d}\t{motif:s}\t{c:d}\t{strand:s}\t'
+                f'{jad:d}\t{pd:d}\t{pa:d}\t{d1:d}\t'
+                f'{lrd:.3f}\t{lra:.3f}\t{d2:d}\n'
+            )
+
+    ## FILTERING
+    log.info('Getting filtered guide junctions')
+    b_handle, filtered_bed_fn = tempfile.mkstemp(suffix='.bed')
+    with open(filtered_bed_fn, 'w') as bed:
+        for chrom, start, end, strand, decision in apply_eval_expression(output_bed_fn, exprs):
+            if decision:
+                record = f'{chrom}\t{start}\t{end}\tintron\t0\t{strand}\n'
+                bed.write(record)
+
+    ## SECOND PASS
+    second_pass_fn = f'{output_bam_prefix}.2pass.bam'
+    log.info(f'Second pass alignment will be output to {second_pass_fn}')
+    map_with_minimap2(
+        fastq_fn,
+        ref_fasta_fn,
+        output_fn=second_pass_fn,
+        threads=processes,
+        k=mm2_k, w=mm2_w,
+        splice_flank=mm2_splice_flank,
+        noncanon_pen=mm2_noncanon_splicing_pen,
+        canon_splice_strand='f' if stranded else 'b',
+        junc_bed=filtered_bed_fn,
+        junc_bonus=mm2_junc_bonus,
+        max_intron_size=mm2_max_intron_size,
+        end_seed_pen=mm2_end_seed_pen,
+    )
+    os.close(b_handle)
+    os.remove(filtered_bed_fn)
+    log.info('Complete!')
+
+    
+    
 
 
 if __name__ == '__main__':
