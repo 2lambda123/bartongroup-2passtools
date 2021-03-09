@@ -10,7 +10,9 @@ SAMTOOLS = os.environ.get('SAMTOOLS_PATH', 'samtools')
 
 for program, prg_name in zip([MINIMAP2, SAMTOOLS], ['minimap2', 'samtools']):
     try:
-        subprocess.check_call([program, '--help'])
+        subprocess.check_call([program, '--help'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
     except FileNotFoundError:
         raise OSError(f'{prg_name} not found at location "{program}"')
 

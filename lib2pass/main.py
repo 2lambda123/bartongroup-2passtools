@@ -286,6 +286,9 @@ def filter(bed_fn, output_bed_fn, exprs):
 @click.argument('fastq-fn', required=True, nargs=1)
 @click.option('-b', '--output-bam-prefix', required=True, help='Output bam prefix')
 @_common_options(SCORE_MERGE_COMMON_OPTIONS)
+@click.option('--stranded/--unstranded', default=True,
+              help=('Whether input data is stranded or unstranded. '
+                    'direct RNA is stranded, cDNA often isn\'t'))
 @click.option('--exprs', required=False, default="decision_tree_2_pred")
 @click.option('-mk', '--mm2-k', default=14, type=int, help='Minimap2 minimizer kmer size')
 @click.option('-mw', '--mm2-w', default=5, type=int, help='Minimap2 minimizer window size')
@@ -295,12 +298,12 @@ def filter(bed_fn, output_bed_fn, exprs):
               help='Penalty for non-canonical (non GU/AG) splicing')
 @click.option('--mm2-junc-bonus', default=12, type=int,
               help='Score bonus for a splice donor or acceptor found in guide junctions')
-@click.option('--mm2-max-intron-size', default=100_000, type=int, help='Maximum intron size')
+@click.option('-mG', '--mm2-max-intron-size', default=100_000, type=int, help='Maximum intron size')
 @click.option('--mm2-end-seed-pen', default=12, type=int, help='helps avoid tiny terminal exons')
 @click.option('-p', '--processes', default=1)
 @click.option('-s', '--random-seed', default=None, type=int)
 @click_log.simple_verbosity_option(log)
-def mm2pass(fastq_fn, output_bam_fn,
+def mm2pass(fastq_fn, output_bam_prefix,
             output_bed_fn, ref_fasta_fn, annot_bed_fn,
             jad_size_threshold,
             primary_splice_local_dist, canonical_motifs,
@@ -310,6 +313,10 @@ def mm2pass(fastq_fn, output_bam_fn,
             mm2_k, mm2_w, mm2_splice_flank, mm2_noncanon_splicing_pen,
             mm2_junc_bonus, mm2_max_intron_size, mm2_end_seed_pen,
             processes, random_seed):
+    '''
+    2passtools mm2pass: Wrapper which performs two pass alignment using
+    minimap2 and 2passtools score/filter.
+    '''
     if random_seed is not None:
         np.random.seed(random_seed)
 
@@ -392,7 +399,8 @@ def mm2pass(fastq_fn, output_bam_fn,
         max_intron_size=mm2_max_intron_size,
         end_seed_pen=mm2_end_seed_pen,
     )
-    b_handle.close()
+    os.close(b_handle)
+    os.remove(filtered_bed_fn)
     log.info('Complete!')
 
     
