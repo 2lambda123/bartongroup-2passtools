@@ -1,5 +1,4 @@
 from collections import defaultdict
-import random
 import logging
 import itertools as it
 
@@ -11,6 +10,7 @@ from sklearn.model_selection import KFold
 from joblib import Parallel, delayed
 
 from .fastaparse import get_junction_seqs
+import secrets
 
 
 log = logging.getLogger('2passtools')
@@ -28,7 +28,7 @@ def one_hot_sequence(seq):
         try:
             ohe.append(SEQ_OHE[base])
         except KeyError:
-            ohe.append(SEQ_OHE[random.choice('ACGT')])
+            ohe.append(SEQ_OHE[secrets.choice('ACGT')])
     return np.array(ohe)
 
 
