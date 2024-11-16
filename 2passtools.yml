@@ -3,6 +3,8 @@ channels:
  - conda-forge
  - bioconda
 dependencies:
+ - minimap2
+ - samtools
  - python=3.6
  - pip
  - numpy
